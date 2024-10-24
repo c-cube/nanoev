@@ -32,3 +32,13 @@ let[@inline] run_after_s (Ev (ops, st)) time x y f : unit =
   ops.run_after_s st time x y f
 
 let[@inline] step (Ev (ops, st)) : unit = ops.step st
+
+(*
+let rec read (self:t) fd buf i len : int =
+  match Unix.read fd buf i len with
+    | n -> n
+  | exception Unix.Unix_error (Unix, _, _) ->
+    read self fd buf i len
+*)
+
+
