@@ -1,0 +1,23 @@
+## test on ["hello\nwor";"ld\n\n123\n"]
+feed input "hello\nwor"
+yielded line "hello"
+feed input "ld\n\n123\n"
+yielded line "world"
+yielded line ""
+yielded line "123"
+done
+## end test
+## test on ["a very very long";" line over here, wow, ";"damn!\noh well\n";"\nanother ";"one?\n";"all done\n"]
+feed input "a very very long"
+feed input " line over here, wow, "
+feed input "damn!\noh well\n"
+yielded line "a very very long line over here, wow, damn!"
+yielded line "oh well"
+feed input "\nanother "
+yielded line ""
+feed input "one?\n"
+yielded line "another one?"
+feed input "all done\n"
+yielded line "all done"
+done
+## end test

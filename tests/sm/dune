@@ -1,4 +1,4 @@
 
 (tests
   (names t_readline)
-  (libraries nanoev.cps))
+  (libraries nanoev.sm))

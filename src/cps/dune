@@ -1,4 +1,0 @@
-
-(library
-  (name nanoev_cps)
-  (public_name nanoev.cps))

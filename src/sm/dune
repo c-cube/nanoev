@@ -1,0 +1,5 @@
+
+(library
+  (name nanoev_sm)
+  (public_name nanoev.sm)
+  (synopsis "state machines for sans-io"))
