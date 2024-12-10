@@ -1,0 +1,6 @@
+
+(library
+  (name nanoev_picos)
+  (public_name nanoev.picos)
+  (optional) ; picos
+  (libraries threads picos nanoev))

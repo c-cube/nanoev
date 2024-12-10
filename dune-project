@@ -18,6 +18,11 @@
  (name nanoev)
  (synopsis "Tiny event loop around `select`")
  (depends ocaml dune base-unix)
- (tags (unix select async)))
+ (depopts
+  (picos
+   (and (>= 0.5) (< 0.7))))
+ (tags
+  (unix select async)))
+
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
