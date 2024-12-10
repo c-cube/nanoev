@@ -1,0 +1,4 @@
+
+(executable
+  (name echo)
+  (libraries nanoev nanoev.unix moonpool nanoev_tiny_httpd))
