@@ -1,6 +1,7 @@
 (lang dune 2.7)
 
 (name nanoev)
+
 (generate_opam_files true)
 
 (source
@@ -24,5 +25,14 @@
  (tags
   (unix select async)))
 
+(package
+ (name nanoev_tiny_httpd)
+ (synopsis "Use nanoev as a basis for tiny_httpd")
+ (depends
+  ocaml
+  dune
+  nanoev
+  picos
+  (tiny_httpd (>= 0.17))))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

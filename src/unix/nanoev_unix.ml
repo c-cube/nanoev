@@ -1,5 +1,3 @@
-(* module type BACKEND = Intf.BACKEND *)
-
 let ( let@ ) = ( @@ )
 let now_ : unit -> float = Unix.gettimeofday
 

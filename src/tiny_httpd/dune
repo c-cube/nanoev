@@ -1,0 +1,10 @@
+(library
+ (name nanoev_tiny_httpd)
+ (public_name nanoev_tiny_httpd)
+ (libraries
+  threads
+  picos
+  (re_export nanoev)
+  nanoev.picos
+  (re_export iostream)
+  (re_export tiny_httpd)))
