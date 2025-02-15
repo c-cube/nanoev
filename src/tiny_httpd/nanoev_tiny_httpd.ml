@@ -92,6 +92,7 @@ module In = struct
 
   class type t = In_buf.t
 
+  (* FIXME: closed should be atomic *)
   let of_unix_fd ?(close_noerr = false) ~closed ~(buf : Slice.t)
       (fd : Unix.file_descr) : t =
     let eof = ref false in
@@ -197,7 +198,7 @@ module Unix_tcp_server_ = struct
               TH.IO.TCP_server.stop = (fun () -> self.running <- false);
               running = (fun () -> self.running);
               active_connections =
-                (fun () -> Sem_.num_acquired self.sem_max_connections - 1);
+                (fun () -> Sem_.num_acquired self.sem_max_connections);
               endpoint =
                 (fun () ->
                   let addr, port = get_addr_ sock in
@@ -207,7 +208,7 @@ module Unix_tcp_server_ = struct
           after_init tcp_server;
 
           (* how to handle a single client *)
-          let handle_client_unix_ (client_sock : Unix.file_descr)
+          let handle_client_ (client_sock : Unix.file_descr)
               (client_addr : Unix.sockaddr) : unit =
             Log.debug (fun k ->
                 k "t[%d]: serving new client on %s"
@@ -237,7 +238,7 @@ module Unix_tcp_server_ = struct
 
           Unix.set_nonblock sock;
           while self.running do
-            match Unix.accept sock with
+            match EV.accept sock with
             | client_sock, client_addr ->
               (* limit concurrency *)
               Sem_.acquire self.sem_max_connections;
@@ -247,7 +248,7 @@ module Unix_tcp_server_ = struct
                 ignore Unix.(sigprocmask SIG_BLOCK Sys.[ sigint; sighup ]);
               self.new_thread (fun () ->
                   try
-                    handle_client_unix_ client_sock client_addr;
+                    handle_client_ client_sock client_addr;
                     Log.debug (fun k ->
                         k "t[%d]: done with client on %s, exiting"
                           (Thread.id @@ Thread.self ())
@@ -269,14 +270,9 @@ module Unix_tcp_server_ = struct
                           (Printexc.raw_backtrace_to_string bt)));
               if not Sys.win32 then
                 ignore Unix.(sigprocmask SIG_UNBLOCK Sys.[ sigint; sighup ])
-            | exception Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK), _, _)
-              ->
-              (* wait for the socket to be ready, and re-enter the loop *)
-              ignore (Unix.select [ sock ] [] [ sock ] 1.0 : _ * _ * _)
             | exception e ->
               Log.error (fun k ->
-                  k "Unix.accept raised an exception: %s" (Printexc.to_string e));
-              Thread.delay 0.01
+                  k "Unix.accept raised an exception: %s" (Printexc.to_string e))
           done;
 
           (* Wait for all threads to be done: this only works if all threads are done. *)

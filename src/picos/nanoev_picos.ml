@@ -1,4 +1,8 @@
-let ( let@ ) = ( @@ )
+open struct
+  module Trace_ = Nanoev.Trace_
+
+  let ( let@ ) = ( @@ )
+end
 
 module Global_ = struct
   type st =
@@ -23,6 +27,7 @@ module Global_ = struct
       x
 
   let bg_thread_ ~active ~evloop () : unit =
+    Trace_.set_thread_name "nanoev.picos.bg-thread";
     while Atomic.get active do
       Nanoev.step evloop
     done
@@ -31,12 +36,15 @@ module Global_ = struct
 
   let setup_bg_thread (ev : Nanoev.t) : unit =
     let@ () = with_lock lock in
+    (* shutdown existing thread, if any *)
     (match Atomic.get st with
     | Some st ->
       Atomic.set st.active false;
       Nanoev.wakeup_from_outside st.nanoev;
       Thread.join st.th
     | None -> ());
+
+    (* start new bg thread *)
     let active = Atomic.make true in
     Atomic.set st
     @@ Some
@@ -61,11 +69,12 @@ let[@inline] unwrap_ = function
 
 let retry_read_ fd f =
   let ev = get_loop_exn_ () in
-  let rec loop () =
+  let[@unroll 1] rec loop () =
     match f () with
     | res -> res
     | exception
         Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
+      Trace_.message "read must wait";
       let trigger = Picos.Trigger.create () in
       Nanoev.on_readable ev fd trigger () (fun trigger () ->
           Picos.Trigger.signal trigger);
@@ -81,6 +90,7 @@ let retry_write_ fd f =
     | res -> res
     | exception
         Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
+      Trace_.message "write must wait";
       let trigger = Picos.Trigger.create () in
       Nanoev.on_writable ev fd trigger () (fun trigger () ->
           Picos.Trigger.signal trigger);
@@ -89,11 +99,20 @@ let retry_write_ fd f =
   in
   loop ()
 
-let read fd buf i len : int = retry_read_ fd (fun () -> Unix.read fd buf i len)
-let accept fd = retry_read_ fd (fun () -> Unix.accept fd)
+let read fd buf i len : int =
+  retry_read_ fd (fun () ->
+      Trace_.message "read";
+      Unix.read fd buf i len)
+
+let accept fd =
+  retry_read_ fd (fun () ->
+      Trace_.message "accept";
+      Unix.accept fd)
 
 let write fd buf i len : int =
-  retry_write_ fd (fun () -> Unix.write fd buf i len)
+  retry_write_ fd (fun () ->
+      Trace_.message "write";
+      Unix.write fd buf i len)
 
 let connect fd addr = retry_write_ fd (fun () -> Unix.connect fd addr)
 

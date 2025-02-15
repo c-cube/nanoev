@@ -80,20 +80,26 @@ let setup_logging () =
   Logs.set_level ~all:true (Some Logs.Debug)
 
 let () =
+  let@ () = Trace_tef.with_setup () in
+  Trace.set_thread_name "main";
+
   let port_ = ref 8080 in
   let max_conn = ref 1024 in
+  let j = ref 8 in
   Arg.parse
     (Arg.align
        [
          "--port", Arg.Set_int port_, " set port";
          "-p", Arg.Set_int port_, " set port";
+         "-j", Arg.Set_int j, " number of threads";
          "--debug", Arg.Unit setup_logging, " enable debug";
          "--max-conns", Arg.Set_int max_conn, " maximum concurrent connections";
        ])
     (fun _ -> raise (Arg.Bad ""))
     "echo [option]*";
 
-  let@ pool = Moonpool.Ws_pool.with_ () in
+  let@ pool = Moonpool.Ws_pool.with_ ~num_threads:!j () in
+  let@ _runner = Moonpool_fib.main in
 
   let ev = Nanoev_unix.create () in
   Nanoev_picos.setup_bg_thread ev;
