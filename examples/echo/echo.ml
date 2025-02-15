@@ -103,6 +103,7 @@ let () =
 
   let ev = Nanoev_unix.create () in
   Nanoev_picos.setup_bg_thread ev;
+
   let server =
     Nanoev_tiny_httpd.create ~new_thread:(Moonpool.run_async pool) ~port:!port_
       ~max_connections:!max_conn ()
