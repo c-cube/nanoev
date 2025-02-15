@@ -1,5 +1,6 @@
 open struct
   module Trace_ = Nanoev.Trace_
+  module FD = Nanoev.FD
 
   let ( let@ ) = ( @@ )
   let now_ : unit -> float = Unix.gettimeofday
@@ -89,7 +90,7 @@ let wakeup_from_outside (self : st) : unit =
     let b = Bytes.make 1 '!' in
     ignore (Unix.write self.wakeup_wr b 0 1 : int)
 
-let get_fd_ (self : st) fd : per_fd =
+let get_per_fd_ (self : st) fd : per_fd =
   match Hashtbl.find self.fds fd with
   | per_fd -> per_fd
   | exception Not_found ->
@@ -97,10 +98,10 @@ let get_fd_ (self : st) fd : per_fd =
     Hashtbl.add self.fds fd per_fd;
     per_fd
 
-let on_readable self fd x y f : unit =
+let on_readable self (fd : FD.t) x y f : unit =
   let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.on-readable" in
   let@ self = with_lock_ self in
-  let per_fd = get_fd_ self fd in
+  let per_fd = get_per_fd_ self fd in
   per_fd.r <- Sub (x, y, f, per_fd.r);
   self.sub_up_to_date <- false;
   if Atomic.get self.in_select then wakeup_from_outside self
@@ -108,7 +109,7 @@ let on_readable self fd x y f : unit =
 let on_writable self fd x y f : unit =
   let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.on-writable" in
   let@ self = with_lock_ self in
-  let per_fd = get_fd_ self fd in
+  let per_fd = get_per_fd_ self fd in
   per_fd.w <- Sub (x, y, f, per_fd.w);
   self.sub_up_to_date <- false;
   if Atomic.get self.in_select then wakeup_from_outside self

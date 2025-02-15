@@ -4,6 +4,8 @@ open struct
   let ( let@ ) = ( @@ )
 end
 
+module FD = Nanoev.FD
+
 module Global_ = struct
   type st =
     | None
@@ -67,6 +69,10 @@ let[@inline] unwrap_ = function
   | None -> ()
   | Some (exn, bt) -> Printexc.raise_with_backtrace exn bt
 
+let get_fd (fd : Unix.file_descr) : FD.t =
+  let ev = get_loop_exn_ () in
+  Nanoev.get_fd ev fd
+
 let retry_read_ fd f =
   let ev = get_loop_exn_ () in
   let[@unroll 1] rec loop () =
@@ -99,22 +105,24 @@ let retry_write_ fd f =
   in
   loop ()
 
-let read fd buf i len : int =
+let read (fd : FD.t) buf i len : int =
   retry_read_ fd (fun () ->
       Trace_.message "read";
-      Unix.read fd buf i len)
+      Unix.read fd.fd buf i len)
 
-let accept fd =
+let accept (fd : FD.t) =
   retry_read_ fd (fun () ->
       Trace_.message "accept";
-      Unix.accept fd)
+      let client_sock, client_addr = Unix.accept fd.fd in
+      get_fd client_sock, client_addr)
 
-let write fd buf i len : int =
+let write (fd : FD.t) buf i len : int =
   retry_write_ fd (fun () ->
       Trace_.message "write";
-      Unix.write fd buf i len)
+      Unix.write fd.fd buf i len)
 
-let connect fd addr = retry_write_ fd (fun () -> Unix.connect fd addr)
+let connect (fd : FD.t) addr =
+  retry_write_ fd (fun () -> Unix.connect fd.fd addr)
 
 let sleep t =
   if t > 0. then (

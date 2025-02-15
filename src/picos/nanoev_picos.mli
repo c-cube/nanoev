@@ -1,5 +1,7 @@
 (** Basic interface with picos *)
 
+module FD = Nanoev.FD
+
 val setup_bg_thread : Nanoev.t -> unit
 (** Install this event loop in a background thread *)
 
@@ -8,8 +10,9 @@ val has_bg_thread : unit -> bool
 
 (** {2 Non blocking IO primitives} *)
 
-val read : Unix.file_descr -> bytes -> int -> int -> int
-val connect : Unix.file_descr -> Unix.sockaddr -> unit
-val write : Unix.file_descr -> bytes -> int -> int -> int
-val accept : Unix.file_descr -> Unix.file_descr * Unix.sockaddr
+val get_fd : Unix.file_descr -> FD.t
+val read : FD.t -> bytes -> int -> int -> int
+val connect : FD.t -> Unix.sockaddr -> unit
+val write : FD.t -> bytes -> int -> int -> int
+val accept : FD.t -> FD.t * Unix.sockaddr
 val sleep : float -> unit
