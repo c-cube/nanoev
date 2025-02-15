@@ -4,6 +4,8 @@ open struct
   let ( let@ ) = ( @@ )
 end
 
+exception Closed = Nanoev.Closed
+
 module Global_ = struct
   type st =
     | None
@@ -76,9 +78,12 @@ let retry_read_ fd f =
         Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
       Trace_.message "read must wait";
       let trigger = Picos.Trigger.create () in
-      Nanoev.on_readable ev fd trigger () (fun trigger () ->
+      let closed_r = ref false in
+      Nanoev.on_readable ev fd trigger closed_r (fun ~closed trigger closed_r ->
+          closed_r := closed;
           Picos.Trigger.signal trigger);
       Picos.Trigger.await trigger |> unwrap_;
+      if !closed_r then raise Closed;
       loop ()
   in
   loop ()
@@ -92,27 +97,42 @@ let retry_write_ fd f =
         Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
       Trace_.message "write must wait";
       let trigger = Picos.Trigger.create () in
-      Nanoev.on_writable ev fd trigger () (fun trigger () ->
+      let closed_r = ref false in
+      Nanoev.on_writable ev fd trigger closed_r (fun ~closed trigger closed_r ->
+          closed_r := closed;
           Picos.Trigger.signal trigger);
       Picos.Trigger.await trigger |> unwrap_;
+      if !closed_r then raise Closed;
       loop ()
   in
   loop ()
 
 let read fd buf i len : int =
-  retry_read_ fd (fun () ->
-      Trace_.message "read";
-      Unix.read fd buf i len)
+  try
+    retry_read_ fd (fun () ->
+        Trace_.message "read";
+        Unix.read fd buf i len)
+  with Closed -> 0
+
+let close fd =
+  Unix.close fd;
+  let ev = get_loop_exn_ () in
+  Nanoev.close ev fd
 
 let accept fd =
-  retry_read_ fd (fun () ->
-      Trace_.message "accept";
-      Unix.accept fd)
+  try
+    retry_read_ fd (fun () ->
+        Trace_.message "accept";
+        Unix.accept fd)
+  with Unix.Unix_error ((Unix.ESHUTDOWN | Unix.ECONNABORTED), _, _) ->
+    raise Closed
 
 let write fd buf i len : int =
-  retry_write_ fd (fun () ->
-      Trace_.message "write";
-      Unix.write fd buf i len)
+  try
+    retry_write_ fd (fun () ->
+        Trace_.message "write";
+        Unix.write fd buf i len)
+  with Closed -> 0
 
 let connect fd addr = retry_write_ fd (fun () -> Unix.connect fd addr)
 

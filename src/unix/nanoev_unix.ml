@@ -8,7 +8,7 @@ end
 (** Callback list *)
 type cbs =
   | Nil
-  | Sub : 'a * 'b * ('a -> 'b -> unit) * cbs -> cbs
+  | Sub : 'a * 'b * (closed:bool -> 'a -> 'b -> unit) * cbs -> cbs
 
 let[@inline] cb_is_empty = function
   | Nil -> true
@@ -43,6 +43,18 @@ type st = {
   in_select: bool Atomic.t;
   lock: Mutex.t;
 }
+
+let rec perform_cbs ~closed = function
+  | Nil -> ()
+  | Sub (x, y, f, tail) ->
+    f ~closed x y;
+    perform_cbs ~closed tail
+
+let rec perform_cbs_closed ~closed = function
+  | Nil -> ()
+  | Sub (x, y, f, tail) ->
+    f ~closed x y;
+    perform_cbs_closed ~closed tail
 
 let leq_timer (Timer a) (Timer b) = a.deadline <= b.deadline
 
@@ -97,6 +109,25 @@ let get_fd_ (self : st) fd : per_fd =
     Hashtbl.add self.fds fd per_fd;
     per_fd
 
+let close self fd : unit =
+  let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.close" in
+  let r, w =
+    let@ self = with_lock_ self in
+    match Hashtbl.find self.fds fd with
+    | per_fd ->
+      Hashtbl.remove self.fds fd;
+      self.sub_up_to_date <- false;
+      if Atomic.get self.in_select then wakeup_from_outside self;
+      per_fd.r, per_fd.w
+    | exception Not_found ->
+      invalid_arg "File descriptor is not known to Nanoev"
+  in
+
+  (* call callbacks outside of the lock *)
+  perform_cbs_closed ~closed:true r;
+  perform_cbs_closed ~closed:true w;
+  ()
+
 let on_readable self fd x y f : unit =
   let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.on-readable" in
   let@ self = with_lock_ self in
@@ -139,12 +170,6 @@ let next_deadline_ (self : st) : float option =
   match Heap.peek_min_exn self.timer with
   | exception Heap.Empty -> None
   | Timer t -> Some t.deadline
-
-let rec perform_cbs = function
-  | Nil -> ()
-  | Sub (x, y, f, tail) ->
-    f x y;
-    perform_cbs tail
 
 let step (self : st) : unit =
   let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.unix.step" in
@@ -207,19 +232,27 @@ let step (self : st) : unit =
   (* call callbacks *)
   List.iter
     (fun fd ->
-      perform_cbs fd.r;
+      perform_cbs ~closed:false fd.r;
       fd.r <- Nil)
     !ready_r;
   List.iter
     (fun fd ->
-      perform_cbs fd.w;
+      perform_cbs ~closed:false fd.w;
       fd.w <- Nil)
     !ready_w;
 
   ()
 
 let ops : st Nanoev.Impl.ops =
-  { step; on_readable; on_writable; run_after_s; wakeup_from_outside; clear }
+  {
+    step;
+    close;
+    on_readable;
+    on_writable;
+    run_after_s;
+    wakeup_from_outside;
+    clear;
+  }
 
 include Nanoev
 

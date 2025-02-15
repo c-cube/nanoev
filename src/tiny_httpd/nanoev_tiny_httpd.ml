@@ -77,13 +77,11 @@ module Out = struct
         done
 
       method private close_underlying () =
-        if not !closed then (
-          closed := true;
+        if not (Atomic.exchange closed true) then
           if close_noerr then (
-            try Unix.close fd with _ -> ()
+            try EV.close fd with _ -> ()
           ) else
-            Unix.close fd
-        )
+            EV.close fd
     end
 end
 
@@ -92,7 +90,6 @@ module In = struct
 
   class type t = In_buf.t
 
-  (* FIXME: closed should be atomic *)
   let of_unix_fd ?(close_noerr = false) ~closed ~(buf : Slice.t)
       (fd : Unix.file_descr) : t =
     let eof = ref false in
@@ -122,13 +119,12 @@ module In = struct
         )
 
       method close () =
-        if not !closed then (
-          closed := true;
+        if not (Atomic.exchange closed true) then (
           eof := true;
           if close_noerr then (
-            try Unix.close fd with _ -> ()
+            try EV.close fd with _ -> ()
           ) else
-            Unix.close fd
+            EV.close fd
         )
     end
 end
@@ -224,7 +220,7 @@ module Unix_tcp_server_ = struct
 
             Pool.with_resource self.slice_pool @@ fun ic_buf ->
             Pool.with_resource self.slice_pool @@ fun oc_buf ->
-            let closed = ref false in
+            let closed = Atomic.make false in
 
             let oc =
               new Out.of_unix_fd
