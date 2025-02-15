@@ -2,7 +2,8 @@
  (name nanoev)
  (public_name nanoev)
  (synopsis "Nano ev loop")
- (libraries unix
+ (libraries
+  unix
   (select
    trace_.ml
    from

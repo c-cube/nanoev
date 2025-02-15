@@ -2,6 +2,4 @@
  (name nanoev_unix)
  (public_name nanoev.unix)
  (synopsis "Unix/select backend")
- (libraries
-  nanoev
-  unix))
+ (libraries nanoev unix))

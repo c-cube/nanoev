@@ -17,10 +17,10 @@
 
 (package
  (name nanoev)
- (synopsis "Tiny event loop around `select`")
+ (synopsis "Tiny event loop abstraction")
  (depends ocaml dune base-unix)
  (depopts
-   (trace (>= 0.7))
+  (trace (>= 0.7))
   (picos
    (and (>= 0.5) (< 0.7))))
  (tags
@@ -34,6 +34,7 @@
   dune
   nanoev
   picos
-  (tiny_httpd (>= 0.17))))
+  (tiny_httpd (>= 0.17)))
+ (tags (nanoev http)))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
