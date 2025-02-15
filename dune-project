@@ -20,6 +20,7 @@
  (synopsis "Tiny event loop around `select`")
  (depends ocaml dune base-unix)
  (depopts
+   (trace (>= 0.7))
   (picos
    (and (>= 0.5) (< 0.7))))
  (tags

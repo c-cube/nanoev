@@ -1,3 +1,5 @@
+module Trace_ = Trace_
+
 module Impl = struct
   type 'st ops = {
     clear: 'st -> unit;
@@ -40,5 +42,3 @@ let rec read (self:t) fd buf i len : int =
   | exception Unix.Unix_error (Unix, _, _) ->
     read self fd buf i len
 *)
-
-

@@ -28,3 +28,9 @@ val step : t -> unit
 val on_readable : t -> Unix.file_descr -> 'a -> 'b -> ('a -> 'b -> unit) -> unit
 val on_writable : t -> Unix.file_descr -> 'a -> 'b -> ('a -> 'b -> unit) -> unit
 val run_after_s : t -> float -> 'a -> 'b -> ('a -> 'b -> unit) -> unit
+
+(**/**)
+
+module Trace_ = Trace_
+
+(**/**)
