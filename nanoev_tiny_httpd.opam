@@ -4,6 +4,7 @@ synopsis: "Use nanoev as a basis for tiny_httpd"
 maintainer: ["Simon Cruanes"]
 authors: ["Simon Cruanes"]
 license: "MIT"
+tags: ["nanoev" "http"]
 homepage: "https://github.com/c-cube/nanoev"
 bug-reports: "https://github.com/c-cube/nanoev/issues"
 depends: [
