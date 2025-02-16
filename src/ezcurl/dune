@@ -1,0 +1,9 @@
+(library
+ (name nanoev_ezcurl)
+ (public_name nanoev_ezcurl)
+ (libraries
+  threads
+  picos
+  (re_export nanoev)
+  nanoev.picos
+  (re_export ezcurl)))

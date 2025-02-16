@@ -37,4 +37,15 @@
   (tiny_httpd (>= 0.17)))
  (tags (nanoev http)))
 
+(package
+ (name nanoev_ezcurl)
+ (synopsis "Use nanoev as a basis for ezcurl")
+ (depends
+  ocaml
+  dune
+  nanoev
+  picos
+  (ezcurl (>= 0.2.4)))
+ (tags (nanoev http curl)))
+
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
