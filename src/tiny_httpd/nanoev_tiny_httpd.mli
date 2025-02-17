@@ -1,7 +1,6 @@
 module TH = Tiny_httpd_core
 
 val create :
-  ?enable_logging:bool ->
   ?masksigpipe:bool ->
   ?max_connections:int ->
   ?timeout:float ->
