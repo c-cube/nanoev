@@ -1,0 +1,11 @@
+
+(library
+ (name nanoev_cohttp)
+ (public_name nanoev_cohttp)
+ (libraries
+  threads
+  picos
+  (re_export nanoev)
+  nanoev.picos
+  (re_export iostream)
+  (re_export cohttp)))

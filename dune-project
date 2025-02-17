@@ -37,4 +37,15 @@
   (tiny_httpd (>= 0.17)))
  (tags (nanoev http)))
 
+(package
+ (name nanoev_cohttp)
+ (synopsis "Use nanoev as a basis for cohttp")
+ (depends
+  ocaml
+  dune
+  nanoev
+  picos
+  (cohttp (>= 6.0)))
+ (tags (nanoev http)))
+
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
