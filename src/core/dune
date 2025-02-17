@@ -1,0 +1,11 @@
+(library
+ (name nanoev)
+ (public_name nanoev)
+ (synopsis "Nano ev loop")
+ (libraries
+  unix
+  (select
+   trace_.ml
+   from
+   (trace.core -> trace_.real.ml)
+   (-> trace_.dummy.ml))))

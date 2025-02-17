@@ -1,4 +1,3 @@
-
 (tests
-  (names t1)
-  (libraries nanoev nanoev.unix threads))
+ (names t1)
+ (libraries nanoev nanoev.unix threads))

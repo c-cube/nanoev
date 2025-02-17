@@ -1,5 +1,0 @@
-(library
- (name nanoev)
- (public_name nanoev)
- (synopsis "Nano ev loop")
- (libraries unix))

@@ -1,12 +1,14 @@
-(* module type BACKEND = Intf.BACKEND *)
+open struct
+  module Trace_ = Nanoev.Trace_
 
-let ( let@ ) = ( @@ )
-let now_ : unit -> float = Unix.gettimeofday
+  let ( let@ ) = ( @@ )
+  let now_ : unit -> float = Unix.gettimeofday
+end
 
 (** Callback list *)
 type cbs =
   | Nil
-  | Sub : 'a * 'b * ('a -> 'b -> unit) * cbs -> cbs
+  | Sub : 'a * 'b * (closed:bool -> 'a -> 'b -> unit) * cbs -> cbs
 
 let[@inline] cb_is_empty = function
   | Nil -> true
@@ -41,6 +43,18 @@ type st = {
   in_select: bool Atomic.t;
   lock: Mutex.t;
 }
+
+let rec perform_cbs ~closed = function
+  | Nil -> ()
+  | Sub (x, y, f, tail) ->
+    f ~closed x y;
+    perform_cbs ~closed tail
+
+let rec perform_cbs_closed ~closed = function
+  | Nil -> ()
+  | Sub (x, y, f, tail) ->
+    f ~closed x y;
+    perform_cbs_closed ~closed tail
 
 let leq_timer (Timer a) (Timer b) = a.deadline <= b.deadline
 
@@ -80,10 +94,12 @@ let clear (self : st) =
   ()
 
 let wakeup_from_outside (self : st) : unit =
-  if not (Atomic.exchange self.wakeup_triggered true) then (
+  if not (Atomic.exchange self.wakeup_triggered true) then
+    let@ _sp =
+      Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.wakeup-from-outside"
+    in
     let b = Bytes.make 1 '!' in
     ignore (Unix.write self.wakeup_wr b 0 1 : int)
-  )
 
 let get_fd_ (self : st) fd : per_fd =
   match Hashtbl.find self.fds fd with
@@ -93,7 +109,27 @@ let get_fd_ (self : st) fd : per_fd =
     Hashtbl.add self.fds fd per_fd;
     per_fd
 
+let close self fd : unit =
+  let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.close" in
+  let r, w =
+    let@ self = with_lock_ self in
+    match Hashtbl.find self.fds fd with
+    | per_fd ->
+      Hashtbl.remove self.fds fd;
+      self.sub_up_to_date <- false;
+      if Atomic.get self.in_select then wakeup_from_outside self;
+      per_fd.r, per_fd.w
+    | exception Not_found ->
+      invalid_arg "File descriptor is not known to Nanoev"
+  in
+
+  (* call callbacks outside of the lock *)
+  perform_cbs_closed ~closed:true r;
+  perform_cbs_closed ~closed:true w;
+  ()
+
 let on_readable self fd x y f : unit =
+  let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.on-readable" in
   let@ self = with_lock_ self in
   let per_fd = get_fd_ self fd in
   per_fd.r <- Sub (x, y, f, per_fd.r);
@@ -101,6 +137,7 @@ let on_readable self fd x y f : unit =
   if Atomic.get self.in_select then wakeup_from_outside self
 
 let on_writable self fd x y f : unit =
+  let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.on-writable" in
   let@ self = with_lock_ self in
   let per_fd = get_fd_ self fd in
   per_fd.w <- Sub (x, y, f, per_fd.w);
@@ -108,6 +145,7 @@ let on_writable self fd x y f : unit =
   if Atomic.get self.in_select then wakeup_from_outside self
 
 let run_after_s self time x y f : unit =
+  let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.run-after-s" in
   let@ self = with_lock_ self in
   let deadline = now_ () +. time in
   Heap.insert self.timer (Timer { deadline; x; y; f });
@@ -115,6 +153,7 @@ let run_after_s self time x y f : unit =
 
 let recompute_if_needed (self : st) =
   if not self.sub_up_to_date then (
+    let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "recompute-if-needed" in
     self.sub_up_to_date <- true;
     self.sub_r <- [];
     self.sub_w <- [];
@@ -132,13 +171,8 @@ let next_deadline_ (self : st) : float option =
   | exception Heap.Empty -> None
   | Timer t -> Some t.deadline
 
-let rec perform_cbs = function
-  | Nil -> ()
-  | Sub (x, y, f, tail) ->
-    f x y;
-    perform_cbs tail
-
 let step (self : st) : unit =
+  let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.unix.step" in
   (* gather the subscriptions and timeout *)
   let timeout, sub_r, sub_w =
     let@ self = with_lock_ self in
@@ -154,6 +188,14 @@ let step (self : st) : unit =
   (* enter [select] *)
   Atomic.set self.in_select true;
   let r_reads, r_writes, _ =
+    let@ _sp =
+      Trace_.with_span ~__FILE__ ~__LINE__ "select" ~data:(fun () ->
+          [
+            "timeout", `Float timeout;
+            "reads", `Int (List.length sub_r);
+            "writes", `Int (List.length sub_w);
+          ])
+    in
     Unix.select (self.wakeup_rd :: sub_r) sub_w [] timeout
   in
   Atomic.set self.in_select false;
@@ -176,8 +218,10 @@ let step (self : st) : unit =
 
    List.iter
      (fun fd ->
-       let per_fd = Hashtbl.find self.fds fd in
-       ready_r := per_fd :: !ready_r)
+       if fd != self.wakeup_rd then (
+         let per_fd = Hashtbl.find self.fds fd in
+         ready_r := per_fd :: !ready_r
+       ))
      r_reads;
    List.iter
      (fun fd ->
@@ -188,19 +232,27 @@ let step (self : st) : unit =
   (* call callbacks *)
   List.iter
     (fun fd ->
-      perform_cbs fd.r;
+      perform_cbs ~closed:false fd.r;
       fd.r <- Nil)
     !ready_r;
   List.iter
     (fun fd ->
-      perform_cbs fd.w;
+      perform_cbs ~closed:false fd.w;
       fd.w <- Nil)
     !ready_w;
 
   ()
 
 let ops : st Nanoev.Impl.ops =
-  { step; on_readable; on_writable; run_after_s; wakeup_from_outside; clear }
+  {
+    step;
+    close;
+    on_readable;
+    on_writable;
+    run_after_s;
+    wakeup_from_outside;
+    clear;
+  }
 
 include Nanoev
 

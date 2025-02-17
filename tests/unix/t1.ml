@@ -15,7 +15,11 @@ let () =
   let ev = E.create () in
   ignore (Thread.create loop ev : Thread.t);
   let rd, wr = mkpipe () in
-  E.on_readable ev rd () () (fun () () -> print_endline "can read");
+  E.on_readable ev rd () () (fun ~closed () () ->
+      if closed then
+        print_endline "closed!"
+      else
+        print_endline "can read");
   Thread.delay 0.05;
   print_endline "writing";
   ignore
