@@ -31,11 +31,11 @@ jobs:
 
       - run: opam pin picos 0.6.0 -y -n
       - run: opam install picos
+      - run: opam install -t --deps-only .
 
       - run: opam exec -- dune build @install
 
       # install some depopts and test deps
-      - run: opam install -t --deps-only .
       - run: opam install -t trace
 
       - run: opam exec -- dune build --profile=release --force @install @runtest
