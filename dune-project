@@ -27,6 +27,13 @@
   (unix select async)))
 
 (package
+ (name nanoev-posix)
+ (synopsis "Use mtime+iomux (posix compliant) as a backend for nanoev")
+ (depends ocaml dune base-unix iomux (mtime (>= 2.0)))
+ (tags
+  (unix select async iomux nanoev)))
+
+(package
  (name nanoev_tiny_httpd)
  (synopsis "Use nanoev as a basis for tiny_httpd")
  (depends
