@@ -124,7 +124,7 @@ let () =
     | `Posix -> Nanoev_posix.create ()
     | `Unix -> Nanoev_unix.create ()
   in
-  let@ () = Nanoev_picos.with_setup_bg_thread ev in
+  let@ () = Nanoev_picos.Background_thread.with_setup ev in
 
   let server =
     Nanoev_tiny_httpd.create ~new_thread:(Moonpool.run_async pool) ~port:!port_
