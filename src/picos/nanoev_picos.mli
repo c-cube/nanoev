@@ -1,11 +1,18 @@
 (** Basic interface with picos *)
 
-val setup_bg_thread : Nanoev.t -> unit
-(** Install this event loop in a background thread *)
+module Background_thread : sig
+  val setup_bg_thread : Nanoev.t -> unit
+  (** Install this event loop in a background thread *)
 
-val has_bg_thread : unit -> bool
-(** [has_bg_thread ()] is [true] iff a background thread is running a nanoev
-    loop *)
+  val shutdown_bg_thread : unit -> unit
+  (** Shutdown background thread, assuming {! has_bg_thread} returns [true] *)
+
+  val with_setup_bg_thread : Nanoev.t -> (unit -> 'a) -> 'a
+
+  val has_bg_thread : unit -> bool
+  (** [has_bg_thread ()] is [true] iff a background thread is running a nanoev
+      loop *)
+end
 
 (** {2 Non blocking IO primitives} *)
 
@@ -33,4 +40,9 @@ val accept : Unix.file_descr -> Unix.file_descr * Unix.sockaddr
     @raise Nanoev.Closed if the FD is closed.
     @raise Unix.Unix_error for other errors *)
 
+val max_fds : unit -> int
+(** Maximum number of file descriptors one can await on. See {!Nanoev.max_fds}
+*)
+
 val sleep : float -> unit
+(** Suspend current fiber for [n] seconds *)

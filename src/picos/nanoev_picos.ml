@@ -55,10 +55,24 @@ module Global_ = struct
            nanoev = ev;
            th = Thread.create (bg_thread_ ~active ~evloop:ev) ();
          }
+
+  let shutdown_bg_thread () =
+    let@ () = with_lock lock in
+    match Atomic.exchange st None with
+    | None -> ()
+    | Some st ->
+      Atomic.set st.active false;
+      Nanoev.wakeup_from_outside st.nanoev;
+      Thread.join st.th
 end
 
 let has_bg_thread = Global_.has_bg_thread
 let setup_bg_thread = Global_.setup_bg_thread
+let shutdown_bg_thread = Global_.shutdown_bg_thread
+
+let with_setup_bg_thread ev f =
+  setup_bg_thread ev;
+  Fun.protect ~finally:shutdown_bg_thread f
 
 let[@inline] get_loop_exn_ () : Nanoev.t =
   match Atomic.get Global_.st with
@@ -135,6 +149,11 @@ let write fd buf i len : int =
   with Closed -> 0
 
 let connect fd addr = retry_write_ fd (fun () -> Unix.connect fd addr)
+
+let[@inline] max_fds () =
+  match Atomic.get Global_.st with
+  | None -> 1024
+  | Some st -> Nanoev.max_fds st.nanoev
 
 let sleep t =
   if t > 0. then (
