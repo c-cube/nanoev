@@ -3,4 +3,4 @@
  (public_name nanoev-posix)
  (synopsis "posix backend (poll/ppoll+mtime)")
  (private_modules heap)
- (libraries nanoev unix iomux mtime mtime.clock.os))
+ (libraries threads nanoev unix iomux mtime mtime.clock.os))
