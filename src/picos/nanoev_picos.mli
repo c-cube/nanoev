@@ -1,17 +1,16 @@
 (** Basic interface with picos *)
 
 module Background_thread : sig
-  val setup_bg_thread : Nanoev.t -> unit
+  val setup : Nanoev.t -> unit
   (** Install this event loop in a background thread *)
 
-  val shutdown_bg_thread : unit -> unit
-  (** Shutdown background thread, assuming {! has_bg_thread} returns [true] *)
+  val shutdown : unit -> unit
+  (** Shutdown background thread, assuming {! is_setup} returns [true] *)
 
-  val with_setup_bg_thread : Nanoev.t -> (unit -> 'a) -> 'a
+  val with_setup : Nanoev.t -> (unit -> 'a) -> 'a
 
-  val has_bg_thread : unit -> bool
-  (** [has_bg_thread ()] is [true] iff a background thread is running a nanoev
-      loop *)
+  val is_setup : unit -> bool
+  (** [is_setup()] is [true] iff a background thread is running a nanoev loop *)
 end
 
 (** {2 Non blocking IO primitives} *)

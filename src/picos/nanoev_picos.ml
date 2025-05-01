@@ -66,13 +66,15 @@ module Global_ = struct
       Thread.join st.th
 end
 
-let has_bg_thread = Global_.has_bg_thread
-let setup_bg_thread = Global_.setup_bg_thread
-let shutdown_bg_thread = Global_.shutdown_bg_thread
+module Background_thread = struct
+  let is_setup = Global_.has_bg_thread
+  let setup = Global_.setup_bg_thread
+  let shutdown = Global_.shutdown_bg_thread
 
-let with_setup_bg_thread ev f =
-  setup_bg_thread ev;
-  Fun.protect ~finally:shutdown_bg_thread f
+  let with_setup ev f =
+    setup ev;
+    Fun.protect ~finally:shutdown f
+end
 
 let[@inline] get_loop_exn_ () : Nanoev.t =
   match Atomic.get Global_.st with
