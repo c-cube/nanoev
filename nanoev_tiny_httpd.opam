@@ -11,7 +11,8 @@ depends: [
   "ocaml"
   "dune" {>= "2.7"}
   "nanoev"
-  "picos"
+  "picos" {>= "0.6"}
+  "picos_std"
   "tiny_httpd" {>= "0.17"}
   "odoc" {with-doc}
 ]

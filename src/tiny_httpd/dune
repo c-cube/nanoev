@@ -6,5 +6,6 @@
   picos
   (re_export nanoev)
   nanoev.picos
+  picos_std.sync
   (re_export iostream)
   (re_export tiny_httpd)))

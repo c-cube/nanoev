@@ -40,7 +40,8 @@
   ocaml
   dune
   nanoev
-  picos
+  (picos (>= 0.6))
+  picos_std
   (tiny_httpd (>= 0.17)))
  (tags (nanoev http)))
 
