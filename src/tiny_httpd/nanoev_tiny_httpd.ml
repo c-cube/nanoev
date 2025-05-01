@@ -281,7 +281,7 @@ end
 
 open struct
   let get_max_connection_ ?(max_connections = 2048) () : int =
-    let max_connections = max 4 max_connections in
+    let max_connections = min (max 4 @@ EV.max_fds ()) max_connections in
     max_connections
 
   let clear_slice (slice : Slice.t) =
@@ -294,12 +294,13 @@ let create ?(masksigpipe = not Sys.win32) ?max_connections ?(timeout = 0.0)
     ?buf_size ?(get_time_s = Unix.gettimeofday) ?(addr = "127.0.0.1")
     ?(port = 8080) ?sock ?middlewares ~new_thread () : TH.Server.t =
   let max_connections = get_max_connection_ ?max_connections () in
+  let max_pool_size = max_connections * 2 in
   let server =
     {
       Unix_tcp_server_.addr;
       new_thread;
       buf_pool =
-        Pool.create ~clear:Buf.clear_and_zero
+        Pool.create ~clear:Buf.clear_and_zero ~max_size:max_pool_size
           ~mk_item:(fun () -> Buf.create ?size:buf_size ())
           ();
       slice_pool =
