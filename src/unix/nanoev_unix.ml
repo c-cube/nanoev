@@ -243,12 +243,16 @@ let step (self : st) : unit =
 
   ()
 
+(* limit for select is fixed and known *)
+let max_fds _ = 1024
+
 let ops : st Nanoev.Impl.ops =
   {
     step;
     close;
     on_readable;
     on_writable;
+    max_fds;
     run_after_s;
     wakeup_from_outside;
     clear;
