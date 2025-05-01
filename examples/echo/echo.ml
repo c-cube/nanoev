@@ -79,7 +79,16 @@ let setup_logging () =
   Logs.set_reporter @@ Logs.format_reporter ();
   Logs.set_level ~all:true (Some Logs.Debug)
 
+let emit_metrics_ pool server () =
+  while true do
+    Trace.counter_int ~level:Info "pool.tasks" (Moonpool.Runner.num_tasks pool);
+    Trace.counter_int ~level:Info "http.active-conns"
+      (Server.active_connections server);
+    Thread.delay 0.3
+  done
+
 let () =
+  Trace.set_current_level Info;
   let@ () = Trace_tef.with_setup () in
   Trace.set_thread_name "main";
 
@@ -87,6 +96,8 @@ let () =
   let max_conn = ref 1024 in
   let j = ref 8 in
   let backend = ref `Posix in
+  let buf_size = ref 4096 in
+  let max_buf_pool_size = ref None in
 
   let set_backend = function
     | "posix" | "poll" | "default" -> backend := `Posix
@@ -99,6 +110,10 @@ let () =
          "--port", Arg.Set_int port_, " set port";
          "-p", Arg.Set_int port_, " set port";
          "-j", Arg.Set_int j, " number of threads";
+         ( "--max-buf-pool-size",
+           Arg.Int (fun i -> max_buf_pool_size := Some i),
+           " max buffer pool size" );
+         "--buf-size", Arg.Set_int buf_size, " buffer size";
          "--debug", Arg.Unit setup_logging, " enable debug";
          "--max-conns", Arg.Set_int max_conn, " maximum concurrent connections";
          ( "--backend",
@@ -128,6 +143,7 @@ let () =
 
   let server =
     Nanoev_tiny_httpd.create ~new_thread:(Moonpool.run_async pool) ~port:!port_
+      ?max_buf_pool_size:!max_buf_pool_size ~buf_size:!buf_size
       ~max_connections:!max_conn ()
   in
 
@@ -296,8 +312,13 @@ let () =
       Response.make_string ~headers:[ "content-type", "text/html" ] @@ Ok s);
 
   Printf.printf
-    "listening on http://%s:%d with %d threads, %d max connections\n%!"
-    (Server.addr server) (Server.port server) !j !max_conn;
+    "listening on http://%s:%d with %d threads, %d max connections, %d max fds\n\
+     %!"
+    (Server.addr server) (Server.port server) !j !max_conn (Nanoev.max_fds ev);
+
+  if Trace.enabled () then
+    ignore (Thread.create (emit_metrics_ pool server) () : Thread.t);
+
   match Server.run server with
   | Ok () -> ()
   | Error e -> raise e
