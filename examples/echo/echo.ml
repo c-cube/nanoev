@@ -86,6 +86,13 @@ let () =
   let port_ = ref 8080 in
   let max_conn = ref 1024 in
   let j = ref 8 in
+  let backend = ref `Posix in
+
+  let set_backend = function
+    | "posix" | "poll" | "default" -> backend := `Posix
+    | "unix" | "select" -> backend := `Unix
+    | s -> failwith @@ Printf.sprintf "unknown backend %S" s
+  in
   Arg.parse
     (Arg.align
        [
@@ -94,15 +101,30 @@ let () =
          "-j", Arg.Set_int j, " number of threads";
          "--debug", Arg.Unit setup_logging, " enable debug";
          "--max-conns", Arg.Set_int max_conn, " maximum concurrent connections";
+         ( "--backend",
+           Arg.Symbol
+             ([ "posix"; "default"; "unix"; "select"; "poll" ], set_backend),
+           " event loop backend" );
        ])
     (fun _ -> raise (Arg.Bad ""))
     "echo [option]*";
 
-  let@ pool = Moonpool.Ws_pool.with_ ~num_threads:!j () in
-  let@ _runner = Moonpool_fib.main in
+  let@ pool =
+   fun yield ->
+    if !j > 1 then
+      let@ pool = Moonpool.Ws_pool.with_ ~num_threads:!j () in
+      let@ _runner = Moonpool_fib.main in
+      yield pool
+    else
+      Moonpool_fib.main yield
+  in
 
-  let ev = Nanoev_unix.create () in
-  Nanoev_picos.setup_bg_thread ev;
+  let ev =
+    match !backend with
+    | `Posix -> Nanoev_posix.create ()
+    | `Unix -> Nanoev_unix.create ()
+  in
+  let@ () = Nanoev_picos.with_setup_bg_thread ev in
 
   let server =
     Nanoev_tiny_httpd.create ~new_thread:(Moonpool.run_async pool) ~port:!port_
@@ -273,8 +295,9 @@ let () =
       let s = to_string_top h in
       Response.make_string ~headers:[ "content-type", "text/html" ] @@ Ok s);
 
-  Printf.printf "listening on http://%s:%d\n%!" (Server.addr server)
-    (Server.port server);
+  Printf.printf
+    "listening on http://%s:%d with %d threads, %d max connections\n%!"
+    (Server.addr server) (Server.port server) !j !max_conn;
   match Server.run server with
   | Ok () -> ()
   | Error e -> raise e
