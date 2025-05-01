@@ -5,4 +5,6 @@ include module type of struct
 end
 
 val create : unit -> t
-val create_with : Iomux.Poll.t -> t
+(** Create a new nanoev loop using [Iomux] (poll/ppoll).
+
+    {b NOTE}: this is NOT thread-safe *)
