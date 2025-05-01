@@ -294,7 +294,7 @@ let create ?(masksigpipe = not Sys.win32) ?max_connections ?(timeout = 0.0)
     ?buf_size ?(get_time_s = Unix.gettimeofday) ?(addr = "127.0.0.1")
     ?(port = 8080) ?sock ?middlewares ~new_thread () : TH.Server.t =
   let max_connections = get_max_connection_ ?max_connections () in
-  let max_pool_size = max_connections * 2 in
+  let max_pool_size = min 4096 max_connections * 2 in
   let server =
     {
       Unix_tcp_server_.addr;
