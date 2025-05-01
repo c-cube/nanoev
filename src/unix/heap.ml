@@ -22,10 +22,10 @@ open struct
     | E -> 0
     | N (r, _, _, _) -> r
 
-  (** Make a balanced node labelled with [x], and subtrees [a] and [b].
-     We ensure that the right child's rank is ≤ to the rank of the
-     left child (leftist property). The rank of the resulting node
-     is the length of the rightmost path. *)
+  (** Make a balanced node labelled with [x], and subtrees [a] and [b]. We
+      ensure that the right child's rank is ≤ to the rank of the left child
+      (leftist property). The rank of the resulting node is the length of the
+      rightmost path. *)
   let[@inline] mk_node_ x a b =
     if rank_ a >= rank_ b then
       N (rank_ b + 1, x, a, b)
