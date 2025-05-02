@@ -34,7 +34,16 @@
 (package
  (name nanoev-posix)
  (synopsis "Use mtime+iomux (posix compliant) as a backend for nanoev")
- (depends ocaml dune base-unix iomux (mtime (>= 2.0)))
+ (depends
+  ocaml
+  dune
+  base-unix
+  iomux
+  (mtime
+   (>= 2.0))
+  (moonpool :with-test)
+  (trace :with-test)
+  (trace-tef :with-test))
  (tags
   (unix select async iomux nanoev)))
 

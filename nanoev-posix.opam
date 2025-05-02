@@ -13,6 +13,9 @@ depends: [
   "base-unix"
   "iomux"
   "mtime" {>= "2.0"}
+  "moonpool" {with-test}
+  "trace" {with-test}
+  "trace-tef" {with-test}
   "odoc" {with-doc}
 ]
 build: [
