@@ -21,10 +21,26 @@
  (depends ocaml dune base-unix)
  (depopts
   (trace
-   (>= 0.7))
+   (>= 0.7)))
+ (tags
+  (unix select async)))
+
+(package
+ (name nanoev-picos)
+ (synopsis "Use nanoev from picos")
+ (depends
+  ocaml
+  dune
+  base-unix
+  (nanoev
+   (= :version))
   (iostream
    (>= 0.3))
   (picos
+   (and
+    (>= 0.5)
+    (< 0.7)))
+  (picos_std
    (and
     (>= 0.5)
     (< 0.7))))
@@ -39,6 +55,8 @@
   dune
   base-unix
   iomux
+  (nanoev (= :version))
+  (nanoev-picos (= :version))
   (mtime
    (>= 2.0))
   (moonpool :with-test)
@@ -53,9 +71,9 @@
  (depends
   ocaml
   dune
-  nanoev
-  (picos
-   (>= 0.6))
+  (nanoev (= :version))
+  (nanoev-picos (= :version))
+  picos
   picos_std
   (tiny_httpd
    (>= 0.17)))

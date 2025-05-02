@@ -12,6 +12,8 @@ depends: [
   "dune" {>= "2.7"}
   "base-unix"
   "iomux"
+  "nanoev" {= version}
+  "nanoev-picos" {= version}
   "mtime" {>= "2.0"}
   "moonpool" {with-test}
   "trace" {with-test}
