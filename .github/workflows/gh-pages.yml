@@ -23,6 +23,7 @@ jobs:
       - run: opam pin picos 0.6.0 -y -n
 
       - run: opam install odig moonpool trace
+      - run: opam pin . -y -n
       - run: opam install . --deps-only
 
       - run: opam exec -- odig odoc --cache-dir=_doc/ nanoev nanoev-picos nanoev-posix nanoev_tiny_httpd
