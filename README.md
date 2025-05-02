@@ -28,4 +28,7 @@ let () =
 ## Backends
 
 - [x] select
+- [x] poll/ppoll
+- [ ] epoll
+- [ ] kqueue
 - [ ] uring
