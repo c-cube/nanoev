@@ -22,9 +22,10 @@ jobs:
       # temporary until it's in a release
       - run: opam pin picos 0.6.0 -y -n
 
-      - run: opam install picos moonpool trace
+      - run: opam install odig moonpool trace
+      - run: opam install . --deps-only
 
-      - run: opam exec -- odig odoc --cache-dir=_doc/ nanoev
+      - run: opam exec -- odig odoc --cache-dir=_doc/ nanoev nanoev-picos nanoev-posix nanoev_tiny_httpd
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
