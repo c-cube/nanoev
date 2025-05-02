@@ -98,9 +98,6 @@ type st = {
       (** While in [poll()], changes get queued, so we don't invalidate the poll
           buffer before the syscall returns *)
 }
-(* TODO: [Thread.t] field to remember the owner thread, and
-     thread-safe queue for externally queued tasks.
-     Only owner thread can call [step]. *)
 
 let[@inline] queue_task_ (self : st) t : unit =
   Sync_queue.push self.queued_tasks t
@@ -308,11 +305,29 @@ let step (self : st) : unit =
   let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.posix.step" in
 
   self.owner_thread <- Thread.(id (self ()));
+  let now = now_ns () in
   let timeout_ns : int64 =
     match next_deadline_ self with
     | None -> 30_000_000_000L
-    | Some d -> Int64.max 0L (Int64.sub d (now_ns ()))
+    | Some d -> Int64.max 0L (Int64.sub d now)
   in
+
+  (* run timers *)
+  while
+    if Heap.is_empty self.timer then
+      false
+    else (
+      let (Timer t) = Heap.peek_min_exn self.timer in
+      if t.deadline <= now then (
+        ignore (Heap.pop_min_exn self.timer : timer_ev);
+        t.f t.x t.y;
+        true
+      ) else
+        false
+    )
+  do
+    ()
+  done;
 
   (* process all queued tasks.
 
