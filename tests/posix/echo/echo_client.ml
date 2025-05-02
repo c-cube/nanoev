@@ -5,13 +5,24 @@ module IO = Nanoev_picos
 [@@@ocaml.alert "-deprecated"]
 
 let ( let@ ) = ( @@ )
+let spf = Printf.sprintf
 let pf = Printf.printf
 let verbose = ref false
 
-let main ~port ~n ~n_conn () =
-  pf "connect on localhost:%d n=%d n_conn=%d\n%!" port n n_conn;
+let main ~port ~unix_sock ~n ~n_conn () =
+  pf "connect on %s n=%d n_conn=%d\n%!"
+    (if unix_sock = "" then
+       spf "localhost:%d" port
+     else
+       spf "unix:%S" unix_sock)
+    n n_conn;
 
-  let addr = Unix.ADDR_INET (Unix.inet_addr_loopback, port) in
+  let addr =
+    if unix_sock = "" then
+      Unix.ADDR_INET (Unix.inet_addr_loopback, port)
+    else
+      Unix.ADDR_UNIX unix_sock
+  in
 
   let remaining = Atomic.make n in
   let all_done = Atomic.make 0 in
@@ -67,6 +78,7 @@ let () =
   Trace.set_thread_name "main";
 
   let port = ref 1234 in
+  let unix_sock = ref "" in
   let n = ref 1000 in
   let n_conn = ref 20 in
   let opts =
@@ -74,10 +86,15 @@ let () =
       "-p", Arg.Set_int port, " port";
       "-v", Arg.Set verbose, " verbose";
       "-n", Arg.Set_int n, " number of iterations";
+      "--unix", Arg.Set_string unix_sock, " unix socket";
       "--n-conn", Arg.Set_int n_conn, " number of simultaneous connections";
     ]
     |> Arg.align
   in
   Arg.parse opts ignore "echo_client";
 
-  F.main @@ fun _runner -> main ~port:!port ~n:!n ~n_conn:!n_conn ()
+  let@ () =
+    Nanoev_picos.Background_thread.with_setup (Nanoev_posix.create ())
+  in
+  F.main @@ fun _runner ->
+  main ~port:!port ~unix_sock:!unix_sock ~n:!n ~n_conn:!n_conn ()
