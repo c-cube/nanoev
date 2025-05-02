@@ -8,9 +8,8 @@ type t = {
   mutable running: unit Picos.Computation.t option;
 }
 
-let shutdown (self : t) =
-  if Atomic.exchange self.active false then
-    Option.iter Picos.Computation.await self.running
+let join (self : t) : unit = Option.iter Picos.Computation.await self.running
+let shutdown (self : t) = if Atomic.exchange self.active false then ()
 
 open struct
   let run (self : t) () : unit =

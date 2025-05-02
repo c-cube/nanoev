@@ -13,7 +13,11 @@ let[@unroll 1] rec retry_read_ fd f =
   match f () with
   | res -> res
   | exception
-      Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
+      Unix.Unix_error
+        ( ( Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR | Unix.EINPROGRESS
+          | Unix.ECONNRESET ),
+          _,
+          _ ) ->
     (* Trace_.message "read must wait"; *)
     let trigger = Picos.Trigger.create () in
     let closed_r = ref false in
@@ -29,7 +33,11 @@ let[@unroll 1] rec retry_write_ fd f =
   match f () with
   | res -> res
   | exception
-      Unix.Unix_error ((Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR), _, _) ->
+      Unix.Unix_error
+        ( ( Unix.EAGAIN | Unix.EWOULDBLOCK | Unix.EINTR | Unix.EINPROGRESS
+          | Unix.ECONNRESET ),
+          _,
+          _ ) ->
     (* Trace_.message "write must wait"; *)
     let ev = get_loop_exn_ () in
     let trigger = Picos.Trigger.create () in
