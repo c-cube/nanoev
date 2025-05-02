@@ -1,6 +1,7 @@
 (** Basic interface with picos *)
 
 module Background_thread = Background_thread
+module Global_ev = Global_ev
 
 (** {2 Non blocking IO primitives} *)
 

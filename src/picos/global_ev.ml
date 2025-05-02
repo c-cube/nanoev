@@ -1,4 +1,4 @@
-(** Global loop *)
+(** Global loop. *)
 
 open Common_
 
