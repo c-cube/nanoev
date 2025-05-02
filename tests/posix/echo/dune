@@ -1,0 +1,4 @@
+(executables
+ (names echo_server echo_client)
+ (libraries moonpool moonpool.fib nanoev.picos nanoev-posix iostream
+   trace.core trace-tef))
