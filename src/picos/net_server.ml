@@ -60,12 +60,7 @@ end
 
 let establish ?backlog ?max_connections ?(exn_handler = default_exn_handler)
     ~spawn ~(client_handler : client_handler) addr : t =
-  let ev =
-    match Atomic.get Global_.st with
-    | Some { nanoev = ev; _ } -> ev
-    | None -> invalid_arg "Nanoev_picos.Net_server: no event loop installed"
-  in
-
+  let ev = Global_ev.get_nanoev_exn () in
   let max_connections =
     match max_connections with
     | None -> Nanoev.max_fds ev

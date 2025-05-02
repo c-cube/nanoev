@@ -1,9 +1,6 @@
 open Common_
 
-let[@inline] get_loop_exn_ () : Nanoev.t =
-  match Atomic.get Global_.st with
-  | None -> failwith "No nanoev loop installed."
-  | Some st -> st.nanoev
+let get_loop_exn_ : unit -> Nanoev.t = Global_ev.get_nanoev_exn
 
 let[@inline] unwrap_ = function
   | None -> ()
@@ -85,9 +82,7 @@ let rec write fd buf i len =
 let connect fd addr = retry_write_ fd (fun () -> Unix.connect fd addr)
 
 let[@inline] max_fds () =
-  match Atomic.get Global_.st with
-  | None -> 1024
-  | Some st -> Nanoev.max_fds st.nanoev
+  Option.fold ~none:1024 ~some:Nanoev.max_fds @@ Global_ev.get_nanoev ()
 
 let sleep t =
   if t > 0. then (

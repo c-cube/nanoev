@@ -1,15 +1,19 @@
+(** Global loop *)
+
 open Common_
 
-type st =
-  | None
-  | Some of {
-      active: bool Atomic.t;
-      nanoev: Nanoev.t;
-      th: Thread.t;
-    }
+open struct
+  type st =
+    | None
+    | Some of {
+        active: bool Atomic.t;
+        nanoev: Nanoev.t;
+        th: Thread.t;
+      }
 
-let st : st Atomic.t = Atomic.make None
-let lock = Mutex.create ()
+  let st : st Atomic.t = Atomic.make None
+  let lock = Mutex.create ()
+end
 
 let with_lock lock f =
   Mutex.lock lock;
@@ -26,6 +30,16 @@ let bg_thread_ ~active ~evloop () : unit =
   while Atomic.get active do
     Nanoev.step evloop
   done
+
+let[@inline] get_nanoev () : Nanoev.t option =
+  match Atomic.get st with
+  | None -> None
+  | Some st -> Some st.nanoev
+
+let[@inline] get_nanoev_exn () : Nanoev.t =
+  match Atomic.get st with
+  | None -> failwith "No nanoev loop installed in nanoev_picos"
+  | Some st -> st.nanoev
 
 let[@inline] has_bg_thread () = Atomic.get st <> None
 
