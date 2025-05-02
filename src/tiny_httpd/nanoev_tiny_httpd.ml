@@ -23,7 +23,7 @@ module Out = struct
         let i = ref i in
         let len = ref len0 in
         while !len > 0 do
-          match EV.write fd bs !i !len with
+          match EV.write_once fd bs !i !len with
           | 0 -> failwith "write failed"
           | n ->
             i := !i + n;

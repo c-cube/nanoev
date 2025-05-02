@@ -20,9 +20,14 @@
  (synopsis "Tiny event loop abstraction")
  (depends ocaml dune base-unix)
  (depopts
-  (trace (>= 0.7))
+  (trace
+   (>= 0.7))
+  (iostream
+   (>= 0.3))
   (picos
-   (and (>= 0.5) (< 0.7))))
+   (and
+    (>= 0.5)
+    (< 0.7))))
  (tags
   (unix select async)))
 
@@ -40,9 +45,12 @@
   ocaml
   dune
   nanoev
-  (picos (>= 0.6))
+  (picos
+   (>= 0.6))
   picos_std
-  (tiny_httpd (>= 0.17)))
- (tags (nanoev http)))
+  (tiny_httpd
+   (>= 0.17)))
+ (tags
+  (nanoev http)))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html
