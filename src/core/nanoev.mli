@@ -9,6 +9,7 @@ module Impl : sig
     clear: 'st -> unit;
     wakeup_from_outside: 'st -> unit;
     close: 'st -> Unix.file_descr -> unit;
+    max_fds: 'st -> int;
     on_readable:
       'a 'b.
       'st ->
@@ -42,6 +43,9 @@ val step : t -> unit
 
 val close : t -> Unix.file_descr -> unit
 (** Close the file descriptor and clean it up *)
+
+val max_fds : t -> int
+(** Maximum number of file descriptors that can be observed at once. *)
 
 val on_readable :
   t -> Unix.file_descr -> 'a -> 'b -> (closed:bool -> 'a -> 'b -> unit) -> unit

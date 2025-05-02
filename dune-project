@@ -20,11 +20,50 @@
  (synopsis "Tiny event loop abstraction")
  (depends ocaml dune base-unix)
  (depopts
-  (trace (>= 0.7))
-  (picos
-   (and (>= 0.5) (< 0.7))))
+  (trace
+   (>= 0.7)))
  (tags
   (unix select async)))
+
+(package
+ (name nanoev-picos)
+ (synopsis "Use nanoev from picos")
+ (depends
+  ocaml
+  dune
+  base-unix
+  (nanoev
+   (= :version))
+  (iostream
+   (>= 0.3))
+  (picos
+   (and
+    (>= 0.5)
+    (< 0.7)))
+  (picos_std
+   (and
+    (>= 0.5)
+    (< 0.7))))
+ (tags
+  (unix select async)))
+
+(package
+ (name nanoev-posix)
+ (synopsis "Use mtime+iomux (posix compliant) as a backend for nanoev")
+ (depends
+  ocaml
+  dune
+  base-unix
+  iomux
+  (nanoev (= :version))
+  (nanoev-picos (= :version))
+  (mtime
+   (>= 2.0))
+  (moonpool :with-test)
+  (trace :with-test)
+  (trace-tef :with-test))
+ (tags
+  (unix select async iomux nanoev)))
 
 (package
  (name nanoev_tiny_httpd)
@@ -32,9 +71,13 @@
  (depends
   ocaml
   dune
-  nanoev
+  (nanoev (= :version))
+  (nanoev-picos (= :version))
   picos
-  (tiny_httpd (>= 0.17)))
- (tags (nanoev http)))
+  picos_std
+  (tiny_httpd
+   (>= 0.17)))
+ (tags
+  (nanoev http)))
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

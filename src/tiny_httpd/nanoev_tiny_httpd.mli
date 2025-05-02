@@ -3,6 +3,7 @@ module TH = Tiny_httpd_core
 val create :
   ?masksigpipe:bool ->
   ?max_connections:int ->
+  ?max_buf_pool_size:int ->
   ?timeout:float ->
   ?buf_size:int ->
   ?get_time_s:(unit -> float) ->

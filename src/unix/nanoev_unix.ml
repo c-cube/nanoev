@@ -174,16 +174,34 @@ let next_deadline_ (self : st) : float option =
 let step (self : st) : unit =
   let@ _sp = Trace_.with_span ~__FILE__ ~__LINE__ "nanoev.unix.step" in
   (* gather the subscriptions and timeout *)
+  let now = now_ () in
   let timeout, sub_r, sub_w =
     let@ self = with_lock_ self in
     recompute_if_needed self;
     let timeout =
       match next_deadline_ self with
       | None -> 30.
-      | Some d -> max 0. (d -. now_ ())
+      | Some d -> max 0. (d -. now)
     in
     timeout, self.sub_r, self.sub_w
   in
+
+  (* run timers *)
+  while
+    if Heap.is_empty self.timer then
+      false
+    else (
+      let (Timer t) = Heap.peek_min_exn self.timer in
+      if t.deadline <= now then (
+        ignore (Heap.pop_min_exn self.timer : timer_ev);
+        t.f t.x t.y;
+        true
+      ) else
+        false
+    )
+  do
+    ()
+  done;
 
   (* enter [select] *)
   Atomic.set self.in_select true;
@@ -243,12 +261,16 @@ let step (self : st) : unit =
 
   ()
 
+(* limit for select is fixed and known *)
+let max_fds _ = 1024
+
 let ops : st Nanoev.Impl.ops =
   {
     step;
     close;
     on_readable;
     on_writable;
+    max_fds;
     run_after_s;
     wakeup_from_outside;
     clear;

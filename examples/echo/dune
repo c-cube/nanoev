@@ -1,4 +1,4 @@
 (executable
  (name echo)
- (libraries nanoev nanoev.unix moonpool moonpool.fib trace trace-tef
-   nanoev_tiny_httpd))
+ (libraries nanoev nanoev.unix nanoev-posix moonpool moonpool.fib trace
+   trace-tef nanoev_tiny_httpd))

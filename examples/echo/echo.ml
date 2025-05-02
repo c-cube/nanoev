@@ -79,33 +79,71 @@ let setup_logging () =
   Logs.set_reporter @@ Logs.format_reporter ();
   Logs.set_level ~all:true (Some Logs.Debug)
 
+let emit_metrics_ pool server () =
+  while true do
+    Trace.counter_int ~level:Info "pool.tasks" (Moonpool.Runner.num_tasks pool);
+    Trace.counter_int ~level:Info "http.active-conns"
+      (Server.active_connections server);
+    Thread.delay 0.3
+  done
+
 let () =
+  Trace.set_current_level Info;
   let@ () = Trace_tef.with_setup () in
   Trace.set_thread_name "main";
 
   let port_ = ref 8080 in
   let max_conn = ref 1024 in
   let j = ref 8 in
+  let backend = ref `Posix in
+  let buf_size = ref 4096 in
+  let max_buf_pool_size = ref None in
+
+  let set_backend = function
+    | "posix" | "poll" | "default" -> backend := `Posix
+    | "unix" | "select" -> backend := `Unix
+    | s -> failwith @@ Printf.sprintf "unknown backend %S" s
+  in
   Arg.parse
     (Arg.align
        [
          "--port", Arg.Set_int port_, " set port";
          "-p", Arg.Set_int port_, " set port";
          "-j", Arg.Set_int j, " number of threads";
+         ( "--max-buf-pool-size",
+           Arg.Int (fun i -> max_buf_pool_size := Some i),
+           " max buffer pool size" );
+         "--buf-size", Arg.Set_int buf_size, " buffer size";
          "--debug", Arg.Unit setup_logging, " enable debug";
          "--max-conns", Arg.Set_int max_conn, " maximum concurrent connections";
+         ( "--backend",
+           Arg.Symbol
+             ([ "posix"; "default"; "unix"; "select"; "poll" ], set_backend),
+           " event loop backend" );
        ])
     (fun _ -> raise (Arg.Bad ""))
     "echo [option]*";
 
-  let@ pool = Moonpool.Ws_pool.with_ ~num_threads:!j () in
-  let@ _runner = Moonpool_fib.main in
+  let@ pool =
+   fun yield ->
+    if !j > 1 then
+      let@ pool = Moonpool.Ws_pool.with_ ~num_threads:!j () in
+      let@ _runner = Moonpool_fib.main in
+      yield pool
+    else
+      Moonpool_fib.main yield
+  in
 
-  let ev = Nanoev_unix.create () in
-  Nanoev_picos.setup_bg_thread ev;
+  let ev =
+    match !backend with
+    | `Posix -> Nanoev_posix.create ()
+    | `Unix -> Nanoev_unix.create ()
+  in
+  let@ () = Nanoev_picos.Background_thread.with_setup ev in
 
   let server =
     Nanoev_tiny_httpd.create ~new_thread:(Moonpool.run_async pool) ~port:!port_
+      ?max_buf_pool_size:!max_buf_pool_size ~buf_size:!buf_size
       ~max_connections:!max_conn ()
   in
 
@@ -273,8 +311,14 @@ let () =
       let s = to_string_top h in
       Response.make_string ~headers:[ "content-type", "text/html" ] @@ Ok s);
 
-  Printf.printf "listening on http://%s:%d\n%!" (Server.addr server)
-    (Server.port server);
+  Printf.printf
+    "listening on http://%s:%d with %d threads, %d max connections, %d max fds\n\
+     %!"
+    (Server.addr server) (Server.port server) !j !max_conn (Nanoev.max_fds ev);
+
+  if Trace.enabled () then
+    ignore (Thread.create (emit_metrics_ pool server) () : Thread.t);
+
   match Server.run server with
   | Ok () -> ()
   | Error e -> raise e

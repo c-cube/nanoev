@@ -2,4 +2,5 @@
  (name nanoev_unix)
  (public_name nanoev.unix)
  (synopsis "Unix/select backend")
+ (private_modules heap)
  (libraries nanoev unix))
