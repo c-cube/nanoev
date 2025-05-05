@@ -32,6 +32,14 @@ val sleep : float -> unit
 (** Suspend current fiber for [n] seconds *)
 
 module Raw : sig
+  val run_after_s : float -> 'a -> 'b -> ('a -> 'b -> unit) -> unit
+
+  val on_writable :
+    Unix.file_descr -> 'a -> 'b -> (closed:bool -> 'a -> 'b -> unit) -> unit
+
+  val on_readable :
+    Unix.file_descr -> 'a -> 'b -> (closed:bool -> 'a -> 'b -> unit) -> unit
+
   val retry_read : Unix.file_descr -> (unit -> 'a) -> 'a
   val retry_write : Unix.file_descr -> (unit -> 'a) -> 'a
 end
