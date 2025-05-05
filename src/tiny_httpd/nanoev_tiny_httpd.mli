@@ -11,6 +11,7 @@ val create :
   ?addr:string ->
   ?port:int ->
   ?sock:Unix.file_descr ->
+  ?head_middlewares:TH.Server.Head_middleware.t list ->
   ?middlewares:([ `Encoding | `Stage of int ] * TH.Server.Middleware.t) list ->
   new_thread:((unit -> unit) -> unit) ->
   unit ->
