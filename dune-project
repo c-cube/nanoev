@@ -76,7 +76,7 @@
   picos
   picos_std
   (tiny_httpd
-   (>= 0.17)))
+   (>= 0.19)))
  (tags
   (nanoev http)))
 

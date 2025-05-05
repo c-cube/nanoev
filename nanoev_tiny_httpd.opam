@@ -14,7 +14,7 @@ depends: [
   "nanoev-picos" {= version}
   "picos"
   "picos_std"
-  "tiny_httpd" {>= "0.17"}
+  "tiny_httpd" {>= "0.19"}
   "odoc" {with-doc}
 ]
 build: [
