@@ -1,0 +1,4 @@
+(executables
+ (names server client)
+ (libraries moonpool moonpool.fib nanoev nanoev-picos nanoev-posix trace.core
+   trace-tef))
