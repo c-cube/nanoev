@@ -159,7 +159,12 @@ let wakeup_from_outside (self : st) : unit =
 let rec perform_cbs ~closed = function
   | Nil -> ()
   | Sub (x, y, f, tail) ->
-    f ~closed x y;
+    (try f ~closed x y
+     with exn ->
+       let bt = Printexc.get_raw_backtrace () in
+       Printf.eprintf "nanoev-posix: uncaught error %s\n%s%!"
+         (Printexc.to_string exn)
+         (Printexc.raw_backtrace_to_string bt));
     perform_cbs ~closed tail
 
 (** Change the event loop right now. This must be called only from the owner
@@ -320,8 +325,15 @@ let step (self : st) : unit =
       let (Timer t) = Heap.peek_min_exn self.timer in
       if t.deadline <= now then (
         ignore (Heap.pop_min_exn self.timer : timer_ev);
-        t.f t.x t.y;
-        true
+        try
+          t.f t.x t.y;
+          true
+        with exn ->
+          let bt = Printexc.get_raw_backtrace () in
+          Printf.eprintf "nanoev-posix: uncaught error %s in timer\n%s%!"
+            (Printexc.to_string exn)
+            (Printexc.raw_backtrace_to_string bt);
+          false
       ) else
         false
     )
