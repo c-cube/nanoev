@@ -15,25 +15,26 @@ let main () : unit =
   let n_tasks_done = Atomic.make 0 in
   let n_sent = Atomic.make 0 in
   let n_recv = Atomic.make 0 in
-  ignore
-    (Thread.create
-       (fun () ->
-         while true do
-           Printf.printf "%stasks done: %d sent: %d recv: %d%!" reset_line
-             (Atomic.get n_tasks_done) (Atomic.get n_sent) (Atomic.get n_recv);
 
-           Trace.counter_int "task-done" (Atomic.get n_tasks_done);
-           Trace.counter_int "sent" (Atomic.get n_sent);
-           Trace.counter_int "recv" (Atomic.get n_recv);
-
-           Thread.delay 0.2
-         done)
-       ()
-      : Thread.t);
+  let remoteaddr = Unix.ADDR_INET (Unix.inet_addr_loopback, !port) in
 
   (let@ pool = Moonpool.Ws_pool.with_ ~num_threads:!j () in
 
-   let remoteaddr = Unix.ADDR_INET (Unix.inet_addr_loopback, !port) in
+   ignore
+     (Thread.create
+        (fun () ->
+          while true do
+            Printf.printf "%stasks done: %d sent: %d recv: %d%!" reset_line
+              (Atomic.get n_tasks_done) (Atomic.get n_sent) (Atomic.get n_recv);
+
+            Trace.counter_int "task-done" (Atomic.get n_tasks_done);
+            Trace.counter_int "sent" (Atomic.get n_sent);
+            Trace.counter_int "recv" (Atomic.get n_recv);
+
+            Thread.delay 0.2
+          done)
+        ()
+       : Thread.t);
 
    let task () =
      let[@alert "-deprecated"] _sp =
@@ -63,6 +64,9 @@ let main () : unit =
            Nanoev_picos.sleep 0.001
          done
        in
+
+       if Random.float 1. > 0.992 then
+         Trace.counter_int "n-tasks" (Moonpool.Runner.num_tasks pool);
 
        Picos.Fiber.(yield ());
 
