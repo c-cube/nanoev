@@ -1,16 +1,11 @@
 (lang dune 2.7)
-
 (name nanoev)
-
 (generate_opam_files true)
-
 (source
  (github c-cube/nanoev))
-
 (authors "Simon Cruanes")
-
 (maintainers "Simon Cruanes")
-
+(version 0.1)
 (license MIT)
 
 ;(documentation https://url/to/documentation)
