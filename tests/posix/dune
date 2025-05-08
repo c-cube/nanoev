@@ -1,3 +1,4 @@
 (tests
  (names t1)
+ (package nanoev-posix)
  (libraries nanoev nanoev-posix threads))

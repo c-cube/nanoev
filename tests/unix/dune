@@ -1,3 +1,4 @@
 (tests
  (names t1)
+ (package nanoev)
  (libraries nanoev nanoev.unix threads))
