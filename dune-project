@@ -36,7 +36,7 @@
  (synopsis "Use nanoev from picos")
  (depends
   (ocaml
-   (>= 4.12))
+   (>= 4.14))
   dune
   base-unix
   (nanoev
