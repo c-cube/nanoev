@@ -62,7 +62,7 @@
    (>= 4.12))
   dune
   base-unix
-  iomux
+  (iomux (>= 0.3))
   (nanoev
    (= :version))
   (nanoev-picos
