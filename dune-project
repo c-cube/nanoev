@@ -1,11 +1,18 @@
 (lang dune 2.7)
+
 (name nanoev)
+
 (generate_opam_files true)
+
 (source
  (github c-cube/nanoev))
+
 (authors "Simon Cruanes")
+
 (maintainers "Simon Cruanes")
+
 (version 0.1)
+
 (license MIT)
 
 ;(documentation https://url/to/documentation)
@@ -13,7 +20,11 @@
 (package
  (name nanoev)
  (synopsis "Tiny event loop abstraction")
- (depends ocaml dune base-unix)
+ (depends
+  (ocaml
+   (>= 4.12))
+  dune
+  base-unix)
  (depopts
   (trace
    (>= 0.7)))
@@ -24,7 +35,8 @@
  (name nanoev-picos)
  (synopsis "Use nanoev from picos")
  (depends
-  ocaml
+  (ocaml
+   (>= 4.12))
   dune
   base-unix
   (nanoev
@@ -46,12 +58,15 @@
  (name nanoev-posix)
  (synopsis "Use mtime+iomux (posix compliant) as a backend for nanoev")
  (depends
-  ocaml
+  (ocaml
+   (>= 4.12))
   dune
   base-unix
   iomux
-  (nanoev (= :version))
-  (nanoev-picos (= :version))
+  (nanoev
+   (= :version))
+  (nanoev-picos
+   (= :version))
   (mtime
    (>= 2.0))
   (moonpool :with-test)
@@ -66,8 +81,10 @@
  (depends
   ocaml
   dune
-  (nanoev (= :version))
-  (nanoev-picos (= :version))
+  (nanoev
+   (= :version))
+  (nanoev-picos
+   (= :version))
   picos
   picos_std
   (tiny_httpd
