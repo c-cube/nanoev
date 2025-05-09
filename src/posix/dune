@@ -1,6 +1,7 @@
 (library
  (name nanoev_posix)
  (public_name nanoev-posix)
+ (enabled_if (= %{os_type} "Unix"))
  (synopsis "posix backend (poll/ppoll+mtime)")
  (private_modules heap)
  (libraries threads nanoev unix iomux mtime mtime.clock.os))
