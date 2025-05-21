@@ -1,4 +1,4 @@
-(** Nano event loop *)
+(** Nanoev implementation based on [Unix.select] *)
 
 include module type of struct
   include Nanoev
