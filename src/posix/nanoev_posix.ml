@@ -382,12 +382,32 @@ let step (self : st) : unit =
           try Fd_tbl.find self.fds fd with Not_found -> assert false
         in
 
+        (* errors *)
+        if Flags.mem Flags.pollnval flags || Flags.mem Flags.pollerr flags then (
+          (* pollerr: error
+             pollnval: fd is invalid, which we take as meaning that it's been closed. *)
+          let r = fd_data.r in
+          fd_data.r <- Nil;
+          perform_cbs ~closed:true r;
+          let r = fd_data.r in
+          fd_data.r <- Nil;
+          perform_cbs ~closed:true r
+        );
+
+        (* reads *)
         if Flags.mem Flags.pollin flags then (
           let r = fd_data.r in
           fd_data.r <- Nil;
           perform_cbs ~closed:false r
         );
-        if Flags.mem Flags.pollout flags then (
+
+        (* writes *)
+        if Flags.mem Flags.pollhup flags then (
+          (* incompatible with pollout *)
+          let r = fd_data.w in
+          fd_data.w <- Nil;
+          perform_cbs ~closed:false r
+        ) else if Flags.mem Flags.pollout flags then (
           let w = fd_data.w in
           fd_data.w <- Nil;
           perform_cbs ~closed:false w
