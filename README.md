@@ -1,5 +1,8 @@
 # nanoev
 
+**NOTE (2025-09-29)**: I ended up not using this. Instead I reuse Lwt and Lwt_engine. I recommend not using this as there are some timer-related bugs.
+
+
 A minimalistic but modular abstraction for IO event loops.
 
 The goal of this library is to provide a uniform abstraction over multiple
